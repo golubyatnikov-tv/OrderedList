@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>gt.Collections.OrderedList</RootNamespace>
+    <Authors>Tim Golubyatnikov</Authors>
+    <Company />
+    <Version>0.1.0</Version>
+    <PackageId>gt.Collections.OrderedList</PackageId>
+    <Description>A list that sorts the items by the specified property of the object or predicate. Supports INotifyPropertyChanged.</Description>
+    <PackageLicenseUrl>https://github.com/golubyatnikov-tv/OrderedList/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/golubyatnikov-tv/OrderedList</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/golubyatnikov-tv/OrderedList</RepositoryUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+</Project>
