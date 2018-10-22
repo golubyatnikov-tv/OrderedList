@@ -5,31 +5,54 @@ using System.ComponentModel;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using gt.Collections.Ordered;
+using gt.Collections.Ordered.Helpers;
 
 namespace gt.Collections.OrderedList
 {
-    public class OrderedList<T> : ICollection<T>, IEnumerable<T>, IEnumerable, IList<T>, IReadOnlyCollection<T>, IReadOnlyList<T>, ICollection, IList
+    /// <summary>
+    /// Use <see cref="Ordered.OrderedList{T}" /> instead. This class will be removed in the next version of package. For backward compatibility only."/>
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    [Obsolete("Use gt.Collections.Ordered.OrderedList<T>. This class will be removed in the next version of package. For backward compatibility only.")]
+    public class OrderedList<T> : Ordered.OrderedList<T>
     {
-        private readonly IComparer _comparer;
-        private readonly Func<T, object> _orderByFunc;
-        private readonly string _listenPropertyNotifications;
-
-        public OrderedList(Expression<Func<T, object>> orderByFunc, IComparer comparer = null)
+        public OrderedList(Expression<Func<T, object>> orderByFunc, IComparer<object> orderComparer = null, SortMethod sortMethod = SortMethod.BisectRight) : base(orderByFunc, orderComparer, sortMethod)
         {
-            _comparer = comparer ?? Comparer.DefaultInvariant;
+        }
+    }
+}
+
+namespace gt.Collections.Ordered
+{
+    /// <summary>
+    /// List that sorts items when adding
+    /// </summary>    
+    public class OrderedList<T> : OrderedList<T, object>
+    {
+        public static OrderedList<T, TOrder> Create<TOrder>(Expression<Func<T, TOrder>> orderByFunc,
+            Comparer<TOrder> orderComparer = null, SortMethod sortMethod = SortMethod.BisectRight)
+        {
+            return new OrderedList<T, TOrder>(orderByFunc, orderComparer, sortMethod);
+        }
+
+        public OrderedList(Expression<Func<T, object>> orderByFunc, IComparer<object> orderComparer = null, SortMethod sortMethod = SortMethod.BisectRight) : base(orderByFunc, orderComparer, sortMethod)
+        {
+        }
+    }
+
+    /// <summary>
+    /// List that sorts items when adding
+    /// </summary>
+    public class OrderedList<T, TOrder> : IList<T>, IReadOnlyList<T>, IList, IOrderedCollection<T>
+    {        
+        public OrderedList(Expression<Func<T, TOrder>> orderByFunc, IComparer<TOrder> comparer = null, SortMethod sortMethod = SortMethod.BisectRight)
+        {
+            _sortMethod = sortMethod;
+            _comparer = comparer ?? Comparer<TOrder>.Default;
             if (typeof(T).GetInterfaces().Contains(typeof(INotifyPropertyChanged)))
-            {
-                Type type = typeof(T);
-                _listenPropertyNotifications = ReflectionHelper.GetPropertyChain(orderByFunc).FirstOrDefault();
-                /*MemberExpression member = orderByFunc.Body as MemberExpression;
-                if (member?.Member is PropertyInfo propInfo)
-                {
-                    if (type == propInfo.ReflectedType
-                        || type.IsSubclassOf(propInfo.ReflectedType))
-                    {
-                        _listenPropertyNotifications = propInfo.Name;
-                    }
-                }*/
+            {                
+                _listenPropertyNotifications = ReflectionHelper.GetPropertyChain(orderByFunc).FirstOrDefault();                
             }
 
             _orderByFunc = orderByFunc.Compile();
@@ -39,34 +62,28 @@ namespace gt.Collections.OrderedList
             _listImplementation = _implementation;
         }
 
-        private readonly List<object> _orderValues = new List<object>();
+        private readonly SortMethod _sortMethod;
+        private readonly IComparer<TOrder> _comparer;
+        private readonly Func<T, TOrder> _orderByFunc;
+        private readonly string _listenPropertyNotifications;
+        private readonly List<TOrder> _orderValues = new List<TOrder>();
         private readonly List<T> _implementation;
         private readonly ICollection _collectionImplementation;
         private readonly IList _listImplementation;
 
-        public IEnumerator<T> GetEnumerator()
-        {
-            return _implementation.GetEnumerator();
-        }
+        public IEnumerator<T> GetEnumerator() => _implementation.GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return ((IEnumerable)_implementation).GetEnumerator();
-        }
+        IEnumerator IEnumerable.GetEnumerator() => ((IEnumerable)_implementation).GetEnumerator();
 
-        public void Add(T item)
-        {
-            var c = _orderByFunc(item);
-            int insertIndex = CalcInsertIndex(c);
-            Insert(insertIndex, item);
-        }
+        void ICollection<T>.Add(T item) => Add(item);
 
-        int IList.Add(object value)
+        int IList.Add(object value) => Add((T)value);
+
+        public int Add(T item)
         {
-            T item = (T)value;
-            var c = _orderByFunc(item);
-            int insertIndex = CalcInsertIndex(c);
-            InsertInternal(insertIndex, item, c);
+            var orderValue = _orderByFunc(item);
+            var insertIndex = SortingHelper.CalculateSortedInsertIndex(_orderValues, orderValue, _sortMethod, _comparer);
+            InsertInternal(insertIndex, item, orderValue);
             return insertIndex;
         }
 
@@ -87,7 +104,9 @@ namespace gt.Collections.OrderedList
 
         void IList.Insert(int index, object value)
         {
-            Insert(index, (T)value);
+            var item = (T) value;
+            var c = _orderByFunc(item);
+            InsertInternal(index, item, c);
         }
 
         void IList.Remove(object value)
@@ -107,12 +126,8 @@ namespace gt.Collections.OrderedList
 
         public bool Remove(T item)
         {
-            int index = _implementation.IndexOf(item);
-            if (index < 0)
-            {
-                return false;
-            }
-
+            var index = _implementation.IndexOf(item);
+            if (index < 0) return false;
             RemoveInternal(index, item);
             return true;
         }
@@ -142,16 +157,15 @@ namespace gt.Collections.OrderedList
             return _implementation.IndexOf(item);
         }
 
-        public void Insert(int index, T item)
+        void IList<T>.Insert(int index, T item)
         {
             var c = _orderByFunc(item);
             InsertInternal(index, item, c);
         }
 
         public void RemoveAt(int index)
-        {
-            _orderValues.RemoveAt(index);
-            _implementation.RemoveAt(index);
+        {            
+            RemoveInternal(index, _implementation[index]);
         }
 
         bool IList.IsFixedSize => _listImplementation.IsFixedSize;
@@ -160,36 +174,9 @@ namespace gt.Collections.OrderedList
         {
             get => _implementation[index];
             set => ReplaceInternal(index, value);
-        }
+        }        
 
-        private int CalcInsertIndex(object orderValue)
-        {
-            if (_orderValues.Count <= 0)
-            {
-                return 0;
-            }
-
-            if (_comparer.Compare(_orderValues.First(), orderValue) > 0)
-            {
-                return 0;
-            }
-
-            if (_comparer.Compare(_orderValues.Last(), orderValue) <= 0)
-            {
-                return _orderValues.Count;
-            }
-
-            int index = _orderValues.FindLastIndex(c => _comparer.Compare(c, orderValue) <= 0);
-
-            if (index < 0)
-            {
-                return _implementation.Count;
-            }
-
-            return index + 1;
-        }
-
-        private void InsertInternal(int index, T item, object orderValue)
+        private void InsertInternal(int index, T item, TOrder orderValue)
         {
             if (_listenPropertyNotifications != null)
                 if (item is INotifyPropertyChanged notifier)

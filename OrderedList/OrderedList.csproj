@@ -2,16 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <RootNamespace>gt.Collections.OrderedList</RootNamespace>
+    <RootNamespace>gt.Collections.Ordered</RootNamespace>
     <Authors>Tim Golubyatnikov</Authors>
     <Company />
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <PackageId>gt.Collections.OrderedList</PackageId>
-    <Description>A list that sorts the items by the specified property of the object or predicate. Supports INotifyPropertyChanged.</Description>
+    <Description>Package contains OrderedCollection&lt;T, TOrder = Object&gt; and OrderedList&lt;T, TOrder = Object&gt; classes that sort the items by the specified property of the object or predicate. The collections support INotifyPropertyChanged for object`s properties.</Description>
     <PackageLicenseUrl>https://github.com/golubyatnikov-tv/OrderedList/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/golubyatnikov-tv/OrderedList</PackageProjectUrl>
     <RepositoryUrl>https://github.com/golubyatnikov-tv/OrderedList</RepositoryUrl>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <AssemblyName>gt.Collections.Ordered</AssemblyName>
   </PropertyGroup>
 
 </Project>

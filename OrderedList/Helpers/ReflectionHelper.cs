@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Reflection;
 
-namespace gt.Collections.OrderedList
+namespace gt.Collections.Ordered.Helpers
 {
     public class ReflectionHelper
     {
