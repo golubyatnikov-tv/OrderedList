@@ -31,7 +31,7 @@ list.Add(0);
 Console.WriteLine(string.Join(", ", list)); // -1, 0, 2, 3
 ```
 
-### usage with complex objects that reports notifications
+### usage with complex objects that throw notifications
 ```csharp
 
 var list = OrderedCollection<TestNotifyObj>.Create(n => n.Order); // collection uses bisect-right logic by default
